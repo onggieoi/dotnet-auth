@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace apione
 {
@@ -28,6 +29,10 @@ namespace apione
                 {
                     config.Authority = "http://localhost:3001";
                     // config.Audience = "ApiOne";
+                    config.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateAudience = false
+                    };
                     config.RequireHttpsMetadata = false;
                     config.IncludeErrorDetails = true;
                 });
