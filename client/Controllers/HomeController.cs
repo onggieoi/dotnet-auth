@@ -1,34 +1,57 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using client.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication;
+using System.Net.Http;
+using IdentityModel.Client;
 
 namespace client.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IHttpClientFactory _httpClient;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(
+            ILogger<HomeController> logger,
+            IHttpClientFactory httpClient)
         {
             _logger = logger;
+            _httpClient = httpClient;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var serverClient = _httpClient.CreateClient();
+            var discoveryDocument = await serverClient.GetDiscoveryDocumentAsync("http://localhost:3001");
+            var tokenRespone = await serverClient.RequestClientCredentialsTokenAsync(
+                new ClientCredentialsTokenRequest
+                {
+                    Address = discoveryDocument.TokenEndpoint,
+                    ClientId = "client_id",
+                    ClientSecret = "client_secret",
+                    Scope = "ApiOne",
+                });
+
+            var apiClient = _httpClient.CreateClient();
+
+            apiClient.SetBearerToken(tokenRespone.AccessToken);
+
+            var respone = await apiClient.GetAsync("http://localhost:3000/secret");
+
+            var content = await respone.Content.ReadAsStringAsync();
+
+            return Ok(new
+            {
+                access_token = tokenRespone.AccessToken,
+                messgae = content,
+            });
+            // return View();
         }
 
-        [Authorize]
-        public async Task<IActionResult> Secret()
+        public IActionResult Privacy()
         {
-            var token = await HttpContext.GetTokenAsync("access_token");
             return View();
         }
 
